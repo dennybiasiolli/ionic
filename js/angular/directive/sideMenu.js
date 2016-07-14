@@ -14,7 +14,8 @@
  *   side="left"
  *   width="myWidthValue + 20"
  *   is-enabled="shouldLeftSideMenuBeEnabled()"
- *   leave-content-active="shouldLeftSideMenuLeaveMainContentActive()">
+ *   leave-content-active="shouldLeftSideMenuLeaveMainContentActive()"
+ *   display-type="push">
  * </ion-side-menu>
  * ```
  * For a complete side menu example, see the
@@ -24,6 +25,7 @@
  * @param {boolean=} is-enabled Whether this side menu is enabled.
  * @param {number=} width How many pixels wide the side menu should be.  Defaults to 275.
  * @param {boolean=} leave-content-active Whether this menu should leave main content active when menu is opened.  Defaults to false.
+ * @param {string} display-type Which type of display the menu should have.  Allowed values: 'push' or 'overlay'.  Defaults to 'push'.
  */
 IonicModule
 .directive('ionSideMenu', function() {
@@ -35,8 +37,14 @@ IonicModule
       angular.isUndefined(attr.isEnabled) && attr.$set('isEnabled', 'true');
       angular.isUndefined(attr.width) && attr.$set('width', '275');
       angular.isUndefined(attr.leaveContentActive) && attr.$set('leaveContentActive', 'false');
+      angular.isUndefined(attr.displayType) && attr.$set('displayType', 'push');
 
       element.addClass('menu menu-' + attr.side);
+      if (attr.displayType == 'overlay') {
+        element.addClass('menu-animated');
+        element[0].style[attr.side] = '-' + attr.width + 'px';
+        element[0].style.zIndex = 2147483647; // top most, maximum zIndex value
+      }
 
       return function($scope, $element, $attr, sideMenuCtrl) {
         $scope.side = $attr.side || 'left';
@@ -45,7 +53,8 @@ IonicModule
           width: attr.width,
           el: $element[0],
           isEnabled: true,
-          leaveContentActive: false
+          leaveContentActive: false,
+          displayType: attr.displayType
         });
 
         $scope.$watch($attr.width, function(val) {
@@ -59,6 +68,11 @@ IonicModule
         });
         $scope.$watch($attr.leaveContentActive, function(val) {
           sideMenu.setLeaveContentActive(!!val);
+        });
+        $scope.$watch($attr.displayType, function(val) {
+          if (val == 'push' || val == 'overlay') {
+            sideMenu.setDisplayType(val);
+          }
         });
       };
     }
