@@ -12,6 +12,7 @@
       this.isEnabled = (typeof opts.isEnabled === 'undefined') ? true : opts.isEnabled;
       this.setWidth(opts.width);
       this.leaveContentActive = (typeof opts.leaveContentActive === 'undefined') ? false : opts.leaveContentActive;
+      this.displayType = (typeof opts.displayType === 'undefined') ? 'push' : opts.displayType;
     },
     getFullWidth: function() {
       return this.width;
@@ -35,6 +36,9 @@
     },
     setLeaveContentActive: function(leaveContentActive) {
       this.leaveContentActive = leaveContentActive;
+    },
+    setDisplayType: function(displayType) {
+      this.displayType = displayType;
     }
   });
 
