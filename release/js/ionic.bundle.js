@@ -734,7 +734,7 @@ window.ionic.version = '1.3.1';
     // whatever lookup was done to find this element failed to find it
     // so we can't listen for events on it.
     if(element === null) {
-      console.error('Null element passed to gesture (element does not exist). Not listening for gesture');
+      void 0;
       return this;
     }
 
@@ -2397,7 +2397,7 @@ window.ionic.version = '1.3.1';
     /**
      * @ngdoc method
      * @name ionic.Platform#showStatusBar
-     * @description Shows or hides the device status bar (in Cordova). Requires `cordova plugin add org.apache.cordova.statusbar`
+     * @description Shows or hides the device status bar (in Cordova). Requires `ionic plugin add cordova-plugin-statusbar`
      * @param {boolean} shouldShow Whether or not to show the status bar.
      */
     showStatusBar: function(val) {
@@ -2424,7 +2424,7 @@ window.ionic.version = '1.3.1';
      * @name ionic.Platform#fullScreen
      * @description
      * Sets whether the app is fullscreen or not (in Cordova).
-     * @param {boolean=} showFullScreen Whether or not to set the app to fullscreen. Defaults to true. Requires `cordova plugin add org.apache.cordova.statusbar`
+     * @param {boolean=} showFullScreen Whether or not to set the app to fullscreen. Defaults to true. Requires `ionic plugin add cordova-plugin-statusbar`
      * @param {boolean=} showStatusBar Whether or not to show the device's status bar. Defaults to false.
      */
     fullScreen: function(showFullScreen, showStatusBar) {
@@ -2460,9 +2460,7 @@ window.ionic.version = '1.3.1';
   function verifyPlatformReady() {
     setTimeout(function() {
       if(!self.isReady && self.isWebView()) {
-        console.warn('Possible issue: deviceready did not fire in a reasonable amount of time. ' +
-        'This can be caused by plugins in an inconsistent state. One possible solution: uninstall/remove all ' +
-        'plugins and reinstall them. Additionally, one or more plugins might be faulty or out of date.');
+        void 0;
       }
     }, platformReadyTimer);
   }
@@ -2675,7 +2673,7 @@ window.ionic.version = '1.3.1';
  * - Works with labels surrounding inputs
  * - Does not fire off a click if the user moves the pointer too far
  * - Adds and removes an 'activated' css class
- * - Multiple [unit tests](https://github.com/driftyco/ionic/blob/master/test/unit/utils/tap.unit.js) for each scenario
+ * - Multiple [unit tests](https://github.com/driftyco/ionic/blob/1.x/test/unit/utils/tap.unit.js) for each scenario
  *
  */
 /*
@@ -3107,6 +3105,10 @@ function tapIgnoreEvent(e) {
   e.isTapHandled = true;
 
   if(ionic.tap.isElementTapDisabled(e.target)) {
+    return true;
+  }
+
+  if(e.target.tagName == 'SELECT') {
     return true;
   }
 
@@ -6989,7 +6991,7 @@ ionic.scroll = {
 (function(ionic) {
   var NOOP = function() {};
   var deprecated = function(name) {
-    console.error('Method not available in native scrolling: ' + name);
+    void 0;
   };
   ionic.views.ScrollNative = ionic.views.View.inherit({
 
@@ -7010,6 +7012,8 @@ ionic.scroll = {
 
       if(options.startY >= 0 || options.startX >= 0) {
         ionic.requestAnimationFrame(function() {
+          self.__originalContainerHeight = self.el.getBoundingClientRect().height;
+
           self.el.scrollTop = options.startY || 0;
           self.el.scrollLeft = options.startX || 0;
 
@@ -7542,14 +7546,13 @@ ionic.scroll = {
       var self = this;
       var container = self.__container;
 
-      container.removeEventListener('resetScrollView', self.resetScrollView);
       container.removeEventListener('scroll', self.onScroll);
-
       container.removeEventListener('scrollChildIntoView', self.scrollChildIntoView);
-      container.removeEventListener('resetScrollView', self.resetScrollView);
 
       container.removeEventListener(ionic.EVENTS.touchstart, self.handleTouchMove);
       container.removeEventListener(ionic.EVENTS.touchmove, self.handleTouchMove);
+
+      document.removeEventListener('resetScrollView', self.resetScrollView);
 
       ionic.tap.removeClonedInputs(container, self);
 
@@ -8236,6 +8239,8 @@ ionic.scroll = {
       this.el = opts.el;
       this.isEnabled = (typeof opts.isEnabled === 'undefined') ? true : opts.isEnabled;
       this.setWidth(opts.width);
+      this.leaveContentActive = (typeof opts.leaveContentActive === 'undefined') ? false : opts.leaveContentActive;
+      this.displayType = (typeof opts.displayType === 'undefined') ? 'push' : opts.displayType;
     },
     getFullWidth: function() {
       return this.width;
@@ -8256,7 +8261,27 @@ ionic.scroll = {
       if(this.el.style.zIndex !== '-1') {
         this.el.style.zIndex = '-1';
       }
-    }
+    },
+    setLeaveContentActive: function(leaveContentActive) {
+      this.leaveContentActive = leaveContentActive;
+    },
+    setDisplayType: function(displayType) {
+      this.displayType = displayType;
+    },
+    enableAnimation: function() {
+      this.animationEnabled = true;
+      this.el.classList.add('menu-animated');
+    },
+    disableAnimation: function() {
+      this.animationEnabled = false;
+      this.el.classList.remove('menu-animated');
+    },
+    getTranslateX: function() {
+      return parseFloat(this.el.style[ionic.CSS.TRANSFORM].replace('translate3d(', '').split(',')[0]);
+    },
+    setTranslateX: ionic.animationFrameThrottle(function(x) {
+      this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + x + 'px, 0, 0)';
+    })
   });
 
   ionic.views.SideMenuContent = ionic.views.View.inherit({
@@ -55384,7 +55409,8 @@ var LOADING_TPL =
  * .controller('LoadingCtrl', function($scope, $ionicLoading) {
  *   $scope.show = function() {
  *     $ionicLoading.show({
- *       template: 'Loading...'
+ *       template: 'Loading...',
+ *       duration: 3000
  *     }).then(function(){
  *        console.log("The loading indicator is now displayed");
  *     });
@@ -55839,7 +55865,9 @@ function($rootScope, $ionicBody, $compile, $timeout, $ionicPlatform, $ionicTempl
       }
 
       return $timeout(function() {
-        $ionicBody.removeClass(self.viewType + '-open');
+        if (!modalStack.length) {
+          $ionicBody.removeClass(self.viewType + '-open');
+        }
         self.el.classList.add('hide');
       }, self.hideDelay || 320);
     },
@@ -56194,8 +56222,8 @@ IonicModule
          * @description
          * Add Cordova event listeners, such as `pause`, `resume`, `volumedownbutton`, `batterylow`,
          * `offline`, etc. More information about available event types can be found in
-         * [Cordova's event documentation](https://cordova.apache.org/docs/en/edge/cordova_events_events.md.html#Events).
-         * @param {string} type Cordova [event type](https://cordova.apache.org/docs/en/edge/cordova_events_events.md.html#Events).
+         * [Cordova's event documentation](https://cordova.apache.org/docs/en/latest/cordova/events/events.html).
+         * @param {string} type Cordova [event type](https://cordova.apache.org/docs/en/latest/cordova/events/events.html).
          * @param {function} callback Called when the Cordova event is fired.
          * @returns {function} Returns a deregistration function to remove the event listener.
          */
@@ -56306,7 +56334,7 @@ IonicModule
  *   $scope.$on('$destroy', function() {
  *     $scope.popover.remove();
  *   });
- *   // Execute action on hide popover
+ *   // Execute action on hidden popover
  *   $scope.$on('popover.hidden', function() {
  *     // Execute action
  *   });
@@ -60756,7 +60784,7 @@ IonicModule
   '$rootScope',
 function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $ionicHistory, $ionicScrollDelegate, IONIC_BACK_PRIORITY, $rootScope) {
   var self = this;
-  var rightShowing, leftShowing, isDragging;
+  var isDragging;
   var startX, lastX, offsetX, isAsideExposed;
   var enableMenuWithBackViews = true;
 
@@ -60806,7 +60834,11 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
     if (arguments.length === 0) {
       shouldOpen = openAmount <= 0;
     }
-    self.content.enableAnimation();
+    if (self.left.displayType == 'overlay') {
+      self.left.enableAnimation();
+    } else {
+      self.content.enableAnimation();
+    }
     if (!shouldOpen) {
       self.openPercentage(0);
       $rootScope.$emit('$ionicSideMenuClose', 'left');
@@ -60825,7 +60857,11 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
     if (arguments.length === 0) {
       shouldOpen = openAmount >= 0;
     }
-    self.content.enableAnimation();
+    if (self.right.displayType == 'overlay') {
+      self.right.enableAnimation();
+    } else {
+      self.content.enableAnimation();
+    }
     if (!shouldOpen) {
       self.openPercentage(0);
       $rootScope.$emit('$ionicSideMenuClose', 'right');
@@ -60856,7 +60892,17 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
    * @return {float} The amount the side menu is open, either positive or negative for left (positive), or right (negative)
    */
   self.getOpenAmount = function() {
-    return self.content && self.content.getTranslateX() || 0;
+    var retOpenAmount = 0;
+    if ((isNaN(retOpenAmount) || retOpenAmount === 0) && self.right && self.right.displayType == 'overlay') {
+      retOpenAmount = self.right.getTranslateX();
+    }
+    if ((isNaN(retOpenAmount) || retOpenAmount === 0) && self.left && self.left.displayType == 'overlay') {
+      retOpenAmount = self.left.getTranslateX();
+    }
+    if ((isNaN(retOpenAmount) || retOpenAmount === 0) && self.content) {
+      retOpenAmount = self.content.getTranslateX();
+    }
+    return retOpenAmount;
   };
 
   /**
@@ -60891,18 +60937,21 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
    */
   self.openPercentage = function(percentage) {
     var p = percentage / 100;
+    var leaveContentActive = false;
 
     if (self.left && percentage >= 0) {
       self.openAmount(self.left.width * p);
+      leaveContentActive = self.left.leaveContentActive;
     } else if (self.right && percentage < 0) {
       self.openAmount(self.right.width * p);
+      leaveContentActive = self.right.leaveContentActive;
     }
 
-    // add the CSS class "menu-open" if the percentage does not
-    // equal 0, otherwise remove the class from the body element
-    $ionicBody.enableClass((percentage !== 0), 'menu-open');
+    // add the CSS class "menu-open" if don't want to leave content active and the
+    // percentage does not equal 0, otherwise remove the class from the body element
+    $ionicBody.enableClass((!leaveContentActive && percentage !== 0), 'menu-open');
 
-    self.content.setCanScroll(percentage == 0);
+    self.content.setCanScroll(leaveContentActive || percentage == 0);
   };
 
   /*
@@ -60926,6 +60975,18 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
     var maxLeft = self.left && self.left.width || 0;
     var maxRight = self.right && self.right.width || 0;
 
+    var overlayLeft = self.left && self.left.displayType == 'overlay' || false;
+    var overlayRight = self.right && self.right.displayType == 'overlay' || false;
+    var openLeft = overlayLeft && self.left.getTranslateX() || 0;
+    var openRight = overlayRight && self.right.getTranslateX() || 0;
+    var openContent = self.content.getTranslateX() || 0;
+
+    if (amount > maxLeft) {
+      amount = maxLeft;
+    } else if (amount < -maxRight) {
+      amount = -maxRight;
+    }
+
     // Check if we can move to that side, depending if the left/right panel is enabled
     if (!(self.left && self.left.isEnabled) && amount > 0) {
       self.content.setTranslateX(0);
@@ -60937,36 +60998,30 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
       return;
     }
 
-    if (leftShowing && amount > maxLeft) {
-      self.content.setTranslateX(maxLeft);
-      return;
+    if (amount > 0) {
+      if (overlayLeft) { self.left.setTranslateX(amount); }
+      if (overlayRight && openRight) { self.right.setTranslateX(0); }
+      if (!(overlayLeft && openLeft)) { self.content.setTranslateX(overlayLeft ? 0 : amount); }
+    } else if (amount < 0) {
+      if (overlayRight) { self.right.setTranslateX(amount); }
+      if (overlayLeft && openLeft) { self.left.setTranslateX(0); }
+      if (!(overlayRight && openRight)) { self.content.setTranslateX(overlayRight ? 0 : amount); }
+    } else /* if (amount === 0) */ {
+      if (overlayLeft && openLeft) { self.left.setTranslateX(amount); }
+      if (overlayRight && openRight) { self.right.setTranslateX(amount); }
+      if (!(overlayRight && openRight) && openContent) { self.content.setTranslateX(amount); }
     }
 
-    if (rightShowing && amount < -maxRight) {
-      self.content.setTranslateX(-maxRight);
-      return;
-    }
-
-    self.content.setTranslateX(amount);
-
-    if (amount >= 0) {
-      leftShowing = true;
-      rightShowing = false;
-
-      if (amount > 0) {
-        // Push the z-index of the right menu down
-        self.right && self.right.pushDown && self.right.pushDown();
-        // Bring the z-index of the left menu up
-        self.left && self.left.bringUp && self.left.bringUp();
-      }
+    if (amount > 0) {
+      // Push the z-index of the right menu down
+      self.right && self.right.displayType != 'overlay' && self.right.pushDown && self.right.pushDown();
+      // Bring the z-index of the left menu up
+      self.left && self.left.displayType != 'overlay' && self.left.bringUp && self.left.bringUp();
     } else {
-      rightShowing = true;
-      leftShowing = false;
-
       // Bring the z-index of the right menu up
-      self.right && self.right.bringUp && self.right.bringUp();
+      self.right && self.right.displayType != 'overlay' && self.right.bringUp && self.right.bringUp();
       // Push the z-index of the left menu down
-      self.left && self.left.pushDown && self.left.pushDown();
+      self.left && self.left.displayType != 'overlay' && self.left.pushDown && self.left.pushDown();
     }
   };
 
@@ -61098,6 +61153,12 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
       isDragging = true;
       // Initialize dragging
       self.content.disableAnimation();
+      if (self.left.displayType == 'overlay') {
+        self.left.disableAnimation();
+      }
+      if (self.right.displayType == 'overlay') {
+        self.right.disableAnimation();
+      }
       offsetX = self.getOpenAmount();
     }
 
@@ -61126,6 +61187,14 @@ function($scope, $attrs, $ionicSideMenuDelegate, $ionicPlatform, $ionicBody, $io
       }
     }
     return self.edgeThresholdEnabled;
+  };
+
+  $scope.closeMenuOnTap = true;
+  self.closeMenuOnTap = function(closeMenu) {
+    if (arguments.length) {
+      $scope.closeMenuOnTap = !!closeMenu;
+    }
+    return $scope.closeMenuOnTap;
   };
 
   self.isDraggableTarget = function(e) {
@@ -64960,7 +65029,6 @@ IonicModule
  * @param {boolean=} no-tap-scroll By default, the navbar will scroll the content
  * to the top when tapped.  Set no-tap-scroll to true to disable this behavior.
  *
- * </table><br/>
  */
 IonicModule
 .directive('ionNavBar', function() {
@@ -65679,7 +65747,9 @@ IonicModule
 
         $scope.$on('scroll.refreshComplete', function() {
           $scope.$evalAsync(function() {
-            scrollCtrl.scrollView.finishPullToRefresh();
+            if(scrollCtrl.scrollView){
+              scrollCtrl.scrollView.finishPullToRefresh();
+            }
           });
         });
       }
@@ -65721,6 +65791,7 @@ IonicModule
  * @param {boolean=} paging Whether to scroll with paging.
  * @param {expression=} on-refresh Called on pull-to-refresh, triggered by an {@link ionic.directive:ionRefresher}.
  * @param {expression=} on-scroll Called whenever the user scrolls.
+ * @param {expression=} on-scroll-complete Called whenever the scrolling paging is completed.
  * @param {boolean=} scrollbar-x Whether to show the horizontal scrollbar. Default true.
  * @param {boolean=} scrollbar-y Whether to show the vertical scrollbar. Default true.
  * @param {boolean=} zooming Whether to support pinch-to-zoom
@@ -65756,6 +65827,7 @@ function($timeout, $controller, $ionicBind, $ionicConfig) {
           direction: '@',
           paging: '@',
           $onScroll: '&onScroll',
+          $onScrollComplete: '&onScrollComplete',
           scroll: '@',
           scrollbarX: '@',
           scrollbarY: '@',
@@ -65797,7 +65869,8 @@ function($timeout, $controller, $ionicBind, $ionicConfig) {
           maxZoom: $scope.$eval($scope.maxZoom) || 3,
           minZoom: $scope.$eval($scope.minZoom) || 0.5,
           preventDefault: true,
-          nativeScrolling: nativeScrolling
+          nativeScrolling: nativeScrolling,
+          scrollingComplete: onScrollComplete
         };
 
         if (isPaging) {
@@ -65805,10 +65878,17 @@ function($timeout, $controller, $ionicBind, $ionicConfig) {
           scrollViewOptions.bouncing = false;
         }
 
-        $controller('$ionicScroll', {
+        var scrollCtrl = $controller('$ionicScroll', {
           $scope: $scope,
           scrollViewOptions: scrollViewOptions
         });
+
+        function onScrollComplete() {
+          $scope.$onScrollComplete && $scope.$onScrollComplete({
+            scrollTop: scrollCtrl.scrollView.__scrollTop,
+            scrollLeft: scrollCtrl.scrollView.__scrollLeft
+          });
+        }
       }
     }
   };
@@ -65829,7 +65909,9 @@ function($timeout, $controller, $ionicBind, $ionicConfig) {
  * <ion-side-menu
  *   side="left"
  *   width="myWidthValue + 20"
- *   is-enabled="shouldLeftSideMenuBeEnabled()">
+ *   is-enabled="shouldLeftSideMenuBeEnabled()"
+ *   leave-content-active="shouldLeftSideMenuLeaveMainContentActive()"
+ *   display-type="push">
  * </ion-side-menu>
  * ```
  * For a complete side menu example, see the
@@ -65838,6 +65920,8 @@ function($timeout, $controller, $ionicBind, $ionicConfig) {
  * @param {string} side Which side the side menu is currently on.  Allowed values: 'left' or 'right'.
  * @param {boolean=} is-enabled Whether this side menu is enabled.
  * @param {number=} width How many pixels wide the side menu should be.  Defaults to 275.
+ * @param {boolean=} leave-content-active Whether this menu should leave main content active when menu is opened.  Defaults to false.
+ * @param {string} display-type Which type of display the menu should have.  Allowed values: 'push' or 'overlay'.  Defaults to 'push'.
  */
 IonicModule
 .directive('ionSideMenu', function() {
@@ -65848,8 +65932,15 @@ IonicModule
     compile: function(element, attr) {
       angular.isUndefined(attr.isEnabled) && attr.$set('isEnabled', 'true');
       angular.isUndefined(attr.width) && attr.$set('width', '275');
+      angular.isUndefined(attr.leaveContentActive) && attr.$set('leaveContentActive', 'false');
+      angular.isUndefined(attr.displayType) && attr.$set('displayType', 'push');
 
       element.addClass('menu menu-' + attr.side);
+      if (attr.displayType == 'overlay') {
+        element.addClass('menu-animated');
+        element[0].style[attr.side] = '-' + attr.width + 'px';
+        element[0].style.zIndex = 2147483647; // top most, maximum zIndex value
+      }
 
       return function($scope, $element, $attr, sideMenuCtrl) {
         $scope.side = $attr.side || 'left';
@@ -65857,7 +65948,9 @@ IonicModule
         var sideMenu = sideMenuCtrl[$scope.side] = new ionic.views.SideMenu({
           width: attr.width,
           el: $element[0],
-          isEnabled: true
+          isEnabled: true,
+          leaveContentActive: false,
+          displayType: attr.displayType
         });
 
         $scope.$watch($attr.width, function(val) {
@@ -65869,11 +65962,18 @@ IonicModule
         $scope.$watch($attr.isEnabled, function(val) {
           sideMenu.setIsEnabled(!!val);
         });
+        $scope.$watch($attr.leaveContentActive, function(val) {
+          sideMenu.setLeaveContentActive(!!val);
+        });
+        $scope.$watch($attr.displayType, function(val) {
+          if (val == 'push' || val == 'overlay') {
+            sideMenu.setDisplayType(val);
+          }
+        });
       };
     }
   };
 });
-
 
 /**
  * @ngdoc directive
@@ -65890,7 +65990,8 @@ IonicModule
  * ```html
  * <ion-side-menu-content
  *   edge-drag-threshold="true"
- *   drag-content="true">
+ *   drag-content="true"
+ *   close-menu-on-tap="true">
  * </ion-side-menu-content>
  * ```
  * For a complete side menu example, see the
@@ -65901,6 +66002,7 @@ IonicModule
    *  - If a non-zero number is given, that many pixels is used as the maximum allowed distance from the edge that starts dragging the side menu.
    *  - If true is given, the default number of pixels (25) is used as the maximum allowed distance.
    *  - If false or 0 is given, the edge drag threshold is disabled, and dragging from anywhere on the content is allowed.
+ * @param {boolean=} close-menu-on-tap Whether the content tap should close side menus.  Default true.
  *
  */
 IonicModule
@@ -65936,9 +66038,15 @@ function($timeout, $ionicGesture, $window) {
           });
         }
 
+        if (isDefined(attr.closeMenuOnTap)) {
+          $scope.$watch(attr.closeMenuOnTap, function(value) {
+            sideMenuCtrl.closeMenuOnTap(value);
+          });
+        }
+
         // Listen for taps on the content to close the menu
         function onContentTap(gestureEvt) {
-          if (sideMenuCtrl.getOpenAmount() !== 0) {
+          if (sideMenuCtrl.closeMenuOnTap() && sideMenuCtrl.getOpenAmount() !== 0) {
             sideMenuCtrl.close();
             gestureEvt.gesture.srcEvent.preventDefault();
             startCoord = null;
@@ -66512,8 +66620,8 @@ function($animate, $timeout, $compile, $ionicSlideBoxDelegate, $ionicHistory, $i
  *
  * $scope.$on("$ionicSlides.slideChangeEnd", function(event, data){
  *   // note: the indexes are 0-based
- *   $scope.activeIndex = data.activeIndex;
- *   $scope.previousIndex = data.previousIndex;
+ *   $scope.activeIndex = data.slider.activeIndex;
+ *   $scope.previousIndex = data.slider.previousIndex;
  * });
  *
  * ```
