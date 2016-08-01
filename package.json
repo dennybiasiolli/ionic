@@ -6,6 +6,12 @@
   "repository": {
     "url": "git://github.com/driftyco/ionic.git"
   },
+  "scripts": {
+    "gulp": "gulp",
+    "gulp-release": "gulp build --release && rm -rf release && cp -r dist release",
+    "karma": "karma",
+    "protractor": "protractor"
+  },
   "devDependencies": {
     "canonical-path": "0.0.2",
     "chalk": "^0.4.0",
@@ -65,6 +71,7 @@
     "sauce-connect-launcher": "^0.2.2",
     "semver": "^2.2.1",
     "through": "^2.3.4",
+    "webpack": "^1.13.1",
     "winston": "^0.7.2"
   },
   "licenses": [
