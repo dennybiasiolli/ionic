@@ -2977,7 +2977,7 @@ function tapMouseDown(e) {
     e.stopPropagation();
 
     if (!ionic.Platform.isEdge() && (!ionic.tap.isTextInput(e.target) || tapLastTouchTarget !== e.target) &&
-      !isSelectOrOption(e.target.tagName) && !ionic.tap.isVideo(e.target)) {
+      !isSelectOrOption(e.target.tagName) && !e.target.isContentEditable && !ionic.tap.isVideo(e.target)) {
       // If you preventDefault on a text input then you cannot move its text caret/cursor.
       // Allow through only the text input default. However, without preventDefault on an
       // input the 300ms delay can change focus on inputs after the keyboard shows up.
@@ -3101,7 +3101,7 @@ function tapIgnoreEvent(e) {
     return true;
   }
 
-  if(e.target.tagName == 'SELECT') {
+  if(e.target && e.target.tagName == 'SELECT') {
     return true;
   }
 
@@ -8232,6 +8232,8 @@ ionic.scroll = {
       this.el = opts.el;
       this.isEnabled = (typeof opts.isEnabled === 'undefined') ? true : opts.isEnabled;
       this.setWidth(opts.width);
+      this.leaveContentActive = (typeof opts.leaveContentActive === 'undefined') ? false : opts.leaveContentActive;
+      this.displayType = (typeof opts.displayType === 'undefined') ? 'push' : opts.displayType;
     },
     getFullWidth: function() {
       return this.width;
@@ -8252,7 +8254,27 @@ ionic.scroll = {
       if(this.el.style.zIndex !== '-1') {
         this.el.style.zIndex = '-1';
       }
-    }
+    },
+    setLeaveContentActive: function(leaveContentActive) {
+      this.leaveContentActive = leaveContentActive;
+    },
+    setDisplayType: function(displayType) {
+      this.displayType = displayType;
+    },
+    enableAnimation: function() {
+      this.animationEnabled = true;
+      this.el.classList.add('menu-animated');
+    },
+    disableAnimation: function() {
+      this.animationEnabled = false;
+      this.el.classList.remove('menu-animated');
+    },
+    getTranslateX: function() {
+      return parseFloat(this.el.style[ionic.CSS.TRANSFORM].replace('translate3d(', '').split(',')[0]);
+    },
+    setTranslateX: ionic.animationFrameThrottle(function(x) {
+      this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + x + 'px, 0, 0)';
+    })
   });
 
   ionic.views.SideMenuContent = ionic.views.View.inherit({
