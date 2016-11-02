@@ -80,7 +80,9 @@ export function config(config) {
 
   coverageReporter: {
       reporters: [
-        {type: 'json', subdir: '.', file: 'coverage-final.json'}
+        {type: 'json', subdir: '.', file: 'coverage-final.json'},
+        {type: 'text'},
+        {type: 'text-summary'}
       ]
     },
 
