@@ -430,6 +430,19 @@ module.exports = function readTypeScriptModules(tsParser, modules, getFileInfo,
     return location;
   }
 
+  function getJsDocTags(symbol) {
+    var node = symbol.valueDeclaration || symbol.declarations[0];
+    var tags = [];
+    (node.jsDocComments || []).forEach(function(jsDocComment) {
+      (jsDocComment.tags || []).forEach(function(tagNode) {
+        if ((tagNode.tagName || {}).text) {
+          tags.push(tagNode.tagName.text);
+        }
+      });
+    });
+    return tags;
+  }
+
 };
 
 function convertToRegexCollection(items) {
