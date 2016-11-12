@@ -219,7 +219,8 @@ module.exports = function readTypeScriptModules(tsParser, modules, getFileInfo,
       content: getContent(exportSymbol),
       fileInfo: getFileInfo(exportSymbol, basePath),
       location: getLocation(exportSymbol),
-      directiveInfo: getDirectiveInfo(exportSymbol)
+      directiveInfo: getDirectiveInfo(exportSymbol),
+      jsDocTags: getJsDocTags(exportSymbol)
     };
 
     if (exportDoc.docType === 'var' || exportDoc.docType === 'const' || exportDoc.docType === 'let') {
