@@ -32,6 +32,19 @@ describe('readTypeScriptModules', function() {
       expect(exportedDoc.name).toEqual('AbstractClass');
     });
 
+    it('should include exported abstract classes', function() {
+      processor.sourceFiles = [ 'privateModule.ts' ];
+      var docs = [];
+      processor.$process(docs);
+      console.log(docs[0].name, docs[0].jsDocTags);
+      console.log(docs[1].name, docs[1].jsDocTags);
+      console.log(docs[2].name, docs[2].jsDocTags);
+      console.log(docs[3].name, docs[3].jsDocTags);
+      var exportedDoc = docs[2];
+      expect(exportedDoc.name).toEqual('PrivateClass');
+      expect(exportedDoc.jsDocTags).toEqual('PrivateClass');
+    });
+
   });
 
 
